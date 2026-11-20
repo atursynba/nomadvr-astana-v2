@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NomadVR Astana — Interactive VR Tourism Showcase</title>
+
+  <!-- Pinned versions per capstone specification -->
+  <script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.7.0/dist/aframe-extras.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #0d110e;
+      color: #f3f4f6;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    /* Hub / Mode Selection Landing Screen */
+    #landing-screen {
+      position: fixed;
+      inset: 0;
+      background: #0d110e;
+      z-index: 1000;
+      overflow-y: auto;
+      padding: 28px 24px 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .hub-container {
+      width: 100%;
+      max-width: 1080px;
+    }
+
+    .top-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 22px;
+      font-size: 0.78rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #a3a380;
+    }
+
+    .pill-tag {
+      border: 1px solid rgba(212, 212, 170, 0.35);
+      padding: 6px 12px;
+      border-radius: 4px;
+      color: #e5e5c7;
+    }
+
+    .hero-box {
+      background: linear-gradient(125deg, #1b2217 0%, #242e1e 55%, #161b14 100%);
+      border: 1px solid rgba(212, 212, 170, 0.22);
+      padding: 40px 36px;
+      margin-bottom: 18px;
+    }
+
+    .hero-kicker {
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #d4a359;
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+
+    .hero-title {
+      margin: 0 0 14px 0;
+      font-size: clamp(2.1rem, 4.5vw, 3.3rem);
+      line-height: 1.05;
+      font-weight: 800;
+      color: #f5f5dc;
+    }
+
+    .hero-subtitle {
+      margin: 0 0 20px 0;
+      max-width: 620px;
+      font-size: 0.98rem;
+      line-height: 1.55;
+      color: #cbd5c0;
+    }
+
+    .disclosure-bar {
+      background: rgba(0, 0, 0, 0.44);
+      border-left: 3px solid #d4a359;
+      padding: 12px 16px;
+      font-size: 0.84rem;
+      line-height: 1.48;
+      color: #d1d5db;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .ai-toggle-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      color: #f5f5dc;
+      font-weight: 600;
+    }
+
+    .modes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .mode-card {
+      background: #131814;
+      border: 1px solid rgba(212, 212, 170, 0.2);
+      padding: 26px 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.18s ease, background 0.18s ease, transform 0.15s ease;
+    }
+
+    .mode-card:hover {
+      border-color: #d4a359;
+      background: #19201a;
+      transform: translateY(-2px);
+    }
+
+    .mode-index {
+      font-size: 0.74rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #d4a359;
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+
+    .mode-title {
+      margin: 0 0 10px 0;
+      font-size: 1.32rem;
+      font-weight: 700;
+      color: #f5f5dc;
+    }
+
+    .mode-desc {
+      margin: 0 0 24px 0;
+      font-size: 0.9rem;
+      line-height: 1.55;
+      color: #a8b2a1;
+    }
+
+    .mode-link-btn {
+      background: none;
+      border: none;
+      padding: 0;
+      color: #e5c17b;
+      font-size: 0.94rem;
+      font-weight: 700;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .mode-link-btn:hover {
+      color: #fde68a;
+    }
+
+    /* In-Scene VR HUD */
+    #hud {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 500;
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px 20px;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .scene-kicker {
+      font-size: 0.74rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #f8fafc;
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+      font-weight: 700;
+    }
+
+    .scene-heading {
+      margin: 0;
+      font-size: 1.45rem;
+      color: #ffffff;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.75);
+    }
+
+    .status-strip {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    .pill {
+      background: rgba(15, 23, 42, 0.84);
+      color: #f8fafc;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      backdrop-filter: blur(8px);
+    }
+
+    .top-actions {
+      pointer-events: auto;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .top-actions button {
+      background: rgba(15, 23, 42, 0.86);
+      color: #f8fafc;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 6px;
+      padding: 8px 13px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .top-actions button:hover {
+      border-color: #eab308;
+    }
+
+    .bottom-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 980px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    #caption-box {
+      background: rgba(10, 14, 23, 0.9);
+      color: #fde047;
+      padding: 10px 15px;
+      border-radius: 8px;
+      border-left: 4px solid #eab308;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    /* Tour Stop Selector Dock */
+    .tour-dock {
+      pointer-events: auto;
+      background: rgba(17, 20, 24, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      padding: 14px 16px;
+      backdrop-filter: blur(10px);
+    }
+
+    .dock-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .dock-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .dock-sub {
+      font-size: 0.8rem;
+      color: #9ca3af;
+    }
+
+    .stops-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(150px, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 760px) {
+      .stops-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .stop-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 7px;
+      padding: 10px 12px;
+      text-align: left;
+      cursor: pointer;
+      color: #f3f4f6;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .stop-card:hover {
+      border-color: rgba(250, 204, 21, 0.65);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .stop-card.active {
+      border-color: #facc15;
+      background: rgba(250, 204, 21, 0.12);
+    }
+
+    .stop-key {
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      margin-bottom: 3px;
+    }
+
+    .stop-name {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 2px;
+    }
+
+    .stop-meta {
+      font-size: 0.76rem;
+      color: #cbd5e1;
+    }
+
+    .dock-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .action-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      background: rgba(255, 255, 255, 0.1);
+      color: #f9fafb;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .action-btn.primary {
+      background: #facc15;
+      color: #111827;
+      border: none;
+      font-weight: 700;
+    }
+
+    .controls-hint {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. Multi-Mode Hub Landing Screen -->
+  <div id="landing-screen">
+    <div class="hub-container">
+      <div class="top-nav">
+        <span>◇ NOMADVR ASTANA</span>
+        <span class="pill-tag">THREE MODES</span>
+      </div>
+
+      <div class="hero-box">
+        <div class="hero-kicker">TOURISM & MARKETING VR</div>
+        <h1 class="hero-title">Choose a tour mode</h1>
+        <p class="hero-subtitle">
+          Preview Astana's architectural promenade in daylight, explore the illuminated night skyline, or inspect the 48-hour weekend travel package before booking.
+        </p>
+
+        <div class="disclosure-bar">
+          <div>
+            <strong>Privacy & Accessibility Notice:</strong> Optional microphone access enables voice commands (<em>"baiterek"</em>, <em>"khan shatyr"</em>, <em>"pyramid"</em>, <em>"night"</em>, <em>"day"</em>, <em>"next"</em>). Some browsers (such as Chrome) process voice recognition via a cloud speech service. No personal data is stored. All spoken audio is shown as on-screen captions, and all actions work via buttons, keys, or gaze/click.
+          </div>
+          <div class="ai-toggle-row">
+            <label>
+              <input type="checkbox" id="enable-voice-checkbox" checked />
+              Enable Voice AI Assistant (uncheck for Controls-Only Fallback Mode)
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="modes-grid">
+        <div class="mode-card">
+          <div>
+            <div class="mode-index">01 · MAIN WALK</div>
+            <h2 class="mode-title">Nur-Zhol Promenade</h2>
+            <p class="mode-desc">
+              Explore four numbered stops around the boulevard in steppe daylight, inspect landmarks by gaze or click, and listen to the guided tour.
+            </p>
+          </div>
+          <button class="mode-link-btn" data-start-mode="day">Enter the walk →</button>
+        </div>
+
+        <div class="mode-card">
+          <div>
+            <div class="mode-index">02 · NIGHT ATMOSPHERE</div>
+            <h2 class="mode-title">Evening Skyline & Lights</h2>
+            <p class="mode-desc">
+              Experience Astana after dark with glowing streetlamps, illuminated skyline beacons, night stars, and evening architectural lighting.
+            </p>
+          </div>
+          <button class="mode-link-btn" data-start-mode="night">Explore night lights →</button>
+        </div>
+
+        <div class="mode-card">
+          <div>
+            <div class="mode-index">03 · TOURISM OFFER</div>
+            <h2 class="mode-title">48-Hour Discovery Pass</h2>
+            <p class="mode-desc">
+              Jump directly to the weekend itinerary card, review key highlights across the capital, and preview the promotional travel offer.
+            </p>
+          </div>
+          <button class="mode-link-btn" data-start-mode="offer">View tour package →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. In-Scene VR HUD -->
+  <div id="hud">
+    <div class="top-bar">
+      <div class="header-left">
+        <div class="scene-kicker">NOMADVR ASTANA / TOURISM SHOWCASE</div>
+        <h2 class="scene-heading" id="scene-heading">Nur-Zhol Central Promenade</h2>
+        <div class="status-strip">
+          <div class="pill" id="ai-status">Voice AI: Standby</div>
+          <div class="pill" id="scene-state">Stop 01 / 04</div>
+          <div class="pill" id="fps-badge">FPS: --</div>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <button id="btn-hub">Mode menu</button>
+        <button id="btn-fullscreen">Fullscreen</button>
+      </div>
+    </div>
+
+    <div class="bottom-stack">
+      <div id="caption-box">
+        [Astana Guide]: Welcome to Astana. Pick a stop below, press keys 1–4, click a monument, or use voice commands.
+      </div>
+
+      <div class="tour-dock">
+        <div class="dock-header">
+          <div class="dock-title">Choose a tour stop. Then explore.</div>
+          <div class="dock-sub">Click a stop card, gaze/click a 3D monument, or use keys 1 / 2 / 3 / 4.</div>
+        </div>
+
+        <div class="stops-grid">
+          <button class="stop-card active" data-stop="1" id="card-stop-1">
+            <div class="stop-key">1 / CITY EDGE</div>
+            <div class="stop-name">01 · Edge Landmark</div>
+            <div class="stop-meta">GLB model near skyline</div>
+          </button>
+
+          <button class="stop-card" data-stop="2" id="card-stop-2">
+            <div class="stop-key">2 / WEST WING</div>
+            <div class="stop-name">02 · Khan Shatyr</div>
+            <div class="stop-meta">150m tensile tent icon</div>
+          </button>
+
+          <button class="stop-card" data-stop="3" id="card-stop-3">
+            <div class="stop-key">3 / EAST WING</div>
+            <div class="stop-name">03 · Baiterek</div>
+            <div class="stop-meta">Golden sphere & skyline</div>
+          </button>
+
+          <button class="stop-card" data-stop="4" id="card-stop-4">
+            <div class="stop-key">4 / TOUR PASS</div>
+            <div class="stop-name">04 · Pyramid & Offer</div>
+            <div class="stop-meta">48h weekend itinerary</div>
+          </button>
+        </div>
+
+        <div class="dock-footer">
+          <div class="action-row">
+            <button class="action-btn primary" id="btn-voice-cmd">Speak Command (V)</button>
+            <button class="action-btn" id="btn-lighting">Day / Night (N)</button>
+            <button class="action-btn" id="btn-next-stop">Next Stop →</button>
+            <button class="action-btn" id="btn-narration">Repeat Audio</button>
+          </div>
+          <div class="pill" id="active-summary">Selected: 01 · Edge Landmark · Daylight</div>
+        </div>
+      </div>
+
+      <div class="controls-hint">
+        Look around with mouse drag or headset · Gaze 1.2 s or click landmark to inspect · Keys 1–4 select stop · N toggles Day/Night · V triggers Voice AI
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. A-Frame VR Scene -->
+  <a-scene
+    id="vr-scene"
+    renderer="antialias: true; colorManagement: true;"
+    fog="type: exponential; color: #bae6fd; density: 0.012"
+    cursor="rayOrigin: mouse"
+    raycaster="objects: .vr-interactive"
+  >
+    <a-assets>
+      <!-- Animated GLTF/GLB model (< 10 MB) -->
+      <a-asset-item id="monument-glb" src="assets/landmark.glb"></a-asset-item>
+    </a-assets>
+
+    <!-- Sky & Ground -->
+    <a-sky id="sky" color="#7dd3fc"></a-sky>
+    <a-plane
+      id="ground"
+      rotation="-90 0 0"
+      width="100"
+      height="100"
+      color="#cbd5e1"
+      material="roughness: 0.92"
+    ></a-plane>
+
+    <!-- Lighting -->
+    <a-entity id="ambient-light" light="type: ambient; color: #ffffff; intensity: 0.85"></a-entity>
+    <a-entity id="sun-light" light="type: directional; color: #fffbeb; intensity: 1.2" position="5 9 6"></a-entity>
+
+    <!-- Seated / Stationary Camera Rig (No forced camera motion) -->
+    <a-entity id="camera-rig" position="0 1.65 5.2">
+      <a-camera look-controls wasd-controls="enabled: false">
+        <a-entity
+          id="gaze-cursor"
+          position="0 0 -1"
+          geometry="primitive: ring; radiusInner: 0.015; radiusOuter: 0.025"
+          material="color: #facc15; shader: flat"
+          raycaster="objects: .vr-interactive; fuse: true; fuseTimeout: 1200"
+        ></a-entity>
+      </a-camera>
+    </a-entity>
+
+    <!-- Rich Boulevard Environment, Trees, Benches, Lamps, Stars & Skyline -->
+    <a-entity id="boulevard-env" astana-boulevard-rich></a-entity>
+
+    <!-- Stop 01: Edge-of-City Showcase with Imported Animated GLB Model -->
+    <a-entity id="showcase-group" position="7.5 0 -11.5" scale="1.25 1.25 1.25">
+      <a-cylinder position="0 0.08 0" radius="1.65" height="0.16" color="#1e293b"></a-cylinder>
+      <a-cylinder position="0 0.18 0" radius="1.45" height="0.06" color="#475569"></a-cylinder>
+      <a-torus
+        id="hub-halo"
+        position="0 0.22 0"
+        radius="1.52"
+        radius-tubular="0.028"
+        rotation="90 0 0"
+        color="#facc15"
+      ></a-torus>
+
+      <a-entity
+        id="landmark-entity"
+        class="vr-interactive"
+        gltf-model="#monument-glb"
+        position="0 0.21 0"
+        scale="0.72 0.72 0.72"
+        animation-mixer
+        landmark-hotspot="stop: 1"
+      ></a-entity>
+
+      <a-text
+        id="world-label"
+        value="01 / CITY EDGE LANDMARK\n(Gaze or click monument to inspect)"
+        position="0 2.85 0"
+        align="center"
+        color="#0f172a"
+        width="6.4"
+      ></a-text>
+    </a-entity>
+
+    <!-- Stop 02: Procedural Khan Shatyr -->
+    <a-entity
+      id="khan-shatyr-group"
+      class="vr-interactive"
+      position="-3.4 0 -1.2"
+      astana-khan-shatyr-rich
+      landmark-hotspot="stop: 2"
+    ></a-entity>
+
+    <!-- Stop 03: Procedural Baiterek -->
+    <a-entity
+      id="baiterek-group"
+      class="vr-interactive"
+      position="3.4 0 -1.2"
+      scale="0.88 0.88 0.88"
+      astana-baiterek-rich
+      landmark-hotspot="stop: 3"
+    ></a-entity>
+
+    <!-- Stop 04: Procedural Pyramid of Peace & Reconciliation -->
+    <a-entity
+      id="pyramid-group"
+      class="vr-interactive"
+      position="0 0 -4.6"
+      astana-pyramid-rich
+      landmark-hotspot="stop: 4"
+    ></a-entity>
+
+    <!-- Floating Tour Package Offer Panel (Shown on Stop 4 / Offer Mode) -->
+    <a-entity id="offer-group" position="0 1.85 2.1" visible="false">
+      <a-plane
+        width="3.8"
+        height="1.95"
+        color="#0f172a"
+        material="opacity: 0.95; transparent: true"
+      ></a-plane>
+      <a-text
+        id="offer-text"
+        value="ASTANA 48-HOUR DISCOVERY PASS\n• 01 City Edge Landmark & Skyline\n• 02 Khan Shatyr Lifestyle & Sky Deck\n• 03 Baiterek Panorama & Sunset Walk\n• 04 Pyramid of Peace & City Transfer\n\nPress 1 or click 'Next Stop' to restart tour"
+        position="0 0 0.05"
+        align="center"
+        color="#f8fafc"
+        width="3.35"
+      ></a-text>
+    </a-entity>
+  </a-scene>
+
+  <script src="app.js"></script>
+</body>
+</html>
